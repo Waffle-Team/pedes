@@ -95,11 +95,11 @@ h4 {
 }
 
 .redinv-topo {
-  width: 75px;
+  width: 85px;
 }
 
 .redor-topo {
-  width: 70px;
+  width: 68px;
   margin-right: 7px;
 }
 
@@ -721,6 +721,14 @@ footer>h4 {
 }
 
 /* IMAGEM */
+
+.imagem-esquemanovo {
+  width: 75%;
+  margin: auto;
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+}
 
 .imagem-esquema {
   width: 90%;
@@ -2195,42 +2203,56 @@ td {
 }
 
 /* Grade de Cards (Organiza em colunas adaptáveis) */
+.container-seis-itens {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* Grid de 6 colunas alinhadas em linha única na área de trabalho */
 .grid-seis-cards {
-  display: grid;
-  gap: 15px;
-  margin-bottom: 20px;
-  grid-template-columns: repeat(6, 1fr);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 por linha em telas menores */
+    gap: 16px;
+    align-items: center;
+    justify-items: center;
 }
 
-/* Estilo Individual dos Cards */
+@media (min-width: 992px) {
+    .grid-seis-cards {
+        grid-template-columns: repeat(6, 1fr); /* 6 em linha horizontal perfeita no PC */
+        gap: 20px;
+    }
+}
+
+/* Item individual */
 .card-seis {
-  background-color: #ffffff;
-  /* border: 1px solid #e2e8f0; */
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04); */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 100%;
+    max-width: 160px; /* Tamanho proporcional igual ao da primeira imagem */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
 }
 
+/* Imagem sem bordas extras com efeito PUMP */
 .card-seis img {
-  width: 100%;
-  height: auto;
-  display: block;
-  transition: transform 0.3s ease;
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 50%; /* Garante que a área de renderização do hover seja 100% redonda */
+    transition: transform 0.3s ease;
 }
 
-.card-seis:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-  border-color: #cbd5e1;
-}
-
+/* Efeito Pump ao passar o mouse */
 .card-seis:hover img {
-  transform: scale(1.03);
+    transform: scale(1.08); /* O "pump" infla suavemente o ícone redondo */
+}
+
+/* Efeito ao clicar */
+.card-seis:active img {
+    transform: scale(0.95);
 }
 
 /* Painel que aparece embaixo */
@@ -2943,3 +2965,4 @@ html {
   color: #64748b;
   font-size: 0.95rem;
 }
+
