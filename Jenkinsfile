@@ -49,7 +49,9 @@ pipeline {
                     echo "=========================================="
 
                     test -d "${DEPLOY_DIR}"
-                    test -w "${DEPLOY_DIR}"
+
+                    touch "${DEPLOY_DIR}/.jenkins-write-test"
+                    rm -f "${DEPLOY_DIR}/.jenkins-write-test"
 
                     rsync -av --delete \
                         --exclude='.git/' \
