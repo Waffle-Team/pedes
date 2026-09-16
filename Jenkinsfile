@@ -3,18 +3,19 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = 'pedes'
-        CONTAINER_NAME = 'pedes-hml'
-        IMAGE_NAME = 'localhost/pedes'
-        HOST_PORT = '8085'
-        CONTAINER_PORT = '80'
+        APP_NAME        = 'pedes'
+        CONTAINER_NAME  = 'pedes-hml'
+        IMAGE_NAME      = 'localhost/pedes'
+        HOST_PORT       = '8085'
+        CONTAINER_PORT  = '80'
+        DEPLOY_DIR      = '/u01/redelog_root/pedes_hml'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo 'Código já foi obtido pelo Jenkins.'
+                echo 'Codigo obtido pelo Jenkins atraves do SCM.'
             }
         }
 
@@ -23,14 +24,40 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "===== VALIDANDO PROJETO PEDES ====="
+                    echo "=========================================="
+                    echo " VALIDANDO PROJETO PEDES HML"
+                    echo "=========================================="
 
                     test -f index.html
                     test -f style.css
+                    test -f Dockerfile
                     test -d css
                     test -d js
 
                     echo "Arquivos principais encontrados."
+                '''
+            }
+        }
+
+        stage('Atualizar diretorio de deploy') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=========================================="
+                    echo " SINCRONIZANDO PEDES HML"
+                    echo "=========================================="
+
+                    mkdir -p "${DEPLOY_DIR}"
+
+                    rsync -av --delete \
+                        --exclude='.git/' \
+                        "$WORKSPACE/" \
+                        "${DEPLOY_DIR}/"
+
+                    echo ""
+                    echo "Diretorio atualizado:"
+                    echo "${DEPLOY_DIR}"
                 '''
             }
         }
@@ -40,12 +67,20 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "===== BUILD DA IMAGEM ====="
+                    echo "=========================================="
+                    echo " BUILD DA IMAGEM"
+                    echo "=========================================="
+
+                    cd "${DEPLOY_DIR}"
 
                     docker build \
-                        -t ${IMAGE_NAME}:hml-${BUILD_NUMBER} \
-                        -t ${IMAGE_NAME}:hml \
+                        -t "${IMAGE_NAME}:hml-${BUILD_NUMBER}" \
+                        -t "${IMAGE_NAME}:hml" \
                         .
+
+                    echo ""
+                    echo "Imagem criada:"
+                    docker images "${IMAGE_NAME}"
                 '''
             }
         }
@@ -53,9 +88,11 @@ pipeline {
         stage('Parar container anterior') {
             steps {
                 sh '''
-                    echo "===== PARANDO CONTAINER ANTERIOR ====="
+                    echo "=========================================="
+                    echo " REMOVENDO CONTAINER ANTERIOR"
+                    echo "=========================================="
 
-                    docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
+                    docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
                 '''
             }
         }
@@ -65,14 +102,18 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "===== SUBINDO PEDES HML ====="
+                    echo "=========================================="
+                    echo " DEPLOY PEDES HML"
+                    echo "=========================================="
 
                     docker run -d \
-                        --name ${CONTAINER_NAME} \
-                        -p ${HOST_PORT}:${CONTAINER_PORT} \
-                        ${IMAGE_NAME}:hml
+                        --name "${CONTAINER_NAME}" \
+                        -p "${HOST_PORT}:${CONTAINER_PORT}" \
+                        "${IMAGE_NAME}:hml"
 
-                    echo "Container iniciado."
+                    echo ""
+                    echo "Container iniciado:"
+                    docker ps --filter "name=${CONTAINER_NAME}"
                 '''
             }
         }
@@ -82,16 +123,41 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "===== AGUARDANDO NGINX ====="
+                    echo "=========================================="
+                    echo " HEALTH CHECK"
+                    echo "=========================================="
 
+                    echo "Aguardando Nginx iniciar..."
                     sleep 3
 
-                    echo "===== TESTANDO HTTP ====="
+                    echo "Testando HTTP..."
 
-                    curl -f http://localhost:${HOST_PORT}/
+                    if curl -f --max-time 10 \
+                        "http://localhost:${HOST_PORT}/"; then
 
-                    echo ""
-                    echo "PEDES HML respondeu HTTP com sucesso."
+                        echo ""
+                        echo "=========================================="
+                        echo " PEDES HML RESPONDEU HTTP COM SUCESSO"
+                        echo "=========================================="
+
+                    else
+
+                        echo ""
+                        echo "=========================================="
+                        echo " FALHA NO HEALTH CHECK"
+                        echo "=========================================="
+
+                        echo ""
+                        echo "===== STATUS ====="
+                        docker ps -a \
+                            --filter "name=${CONTAINER_NAME}" || true
+
+                        echo ""
+                        echo "===== LOGS ====="
+                        docker logs "${CONTAINER_NAME}" 2>&1 || true
+
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -100,21 +166,33 @@ pipeline {
     post {
 
         success {
-            echo '=========================================='
-            echo ' PEDES HML DEPLOY REALIZADO COM SUCESSO'
-            echo '=========================================='
+            echo '''
+==========================================
+ PEDES HML DEPLOY REALIZADO COM SUCESSO
+==========================================
+'''
         }
 
         failure {
-            echo '=========================================='
-            echo ' PEDES HML - FALHA NO DEPLOY'
-            echo '=========================================='
+            echo '''
+==========================================
+ PEDES HML - FALHA NO DEPLOY
+==========================================
+'''
         }
 
         always {
             sh '''
-                echo "===== STATUS DO CONTAINER ====="
-                docker ps -a --filter name=${CONTAINER_NAME} || true
+                echo ""
+                echo "===== STATUS FINAL DO CONTAINER ====="
+
+                docker ps -a \
+                    --filter "name=${CONTAINER_NAME}" || true
+
+                echo ""
+                echo "===== IMAGEM PEDES ====="
+
+                docker images "${IMAGE_NAME}" || true
             '''
         }
     }
