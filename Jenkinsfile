@@ -48,7 +48,8 @@ pipeline {
                     echo " SINCRONIZANDO PEDES HML"
                     echo "=========================================="
 
-                    mkdir -p "${DEPLOY_DIR}"
+                    test -d "${DEPLOY_DIR}"
+                    test -w "${DEPLOY_DIR}"
 
                     rsync -av --delete \
                         --exclude='.git/' \
